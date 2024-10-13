@@ -1,12 +1,76 @@
-<?php session_start();?>
+<?php
+
+session_start();
+
+// Check if the user is logged in, if not then redirect him to login page
+if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
+    header("location: ../sign_in.php");
+    exit;
+}
+
+if($_SESSION['userlevel'] !== "staff"){
+    header("location: ../sign_in.php");
+}
+
+// Include config file
+require_once "connect.php";
+ 
+$id = $_SESSION['id'];
+
+
+
+$sql = "SELECT staffinfo.Firstname, staffinfo.Lastname, staff.username FROM staffinfo, staff WHERE staff.id = ? AND staffinfo.staff_id = staff.id";
+
+
+
+//preparing the statement
+if($stmt = mysqli_prepare($conn, $sql)){
+
+    // Bind variables to the prepared statement as parameters
+    mysqli_stmt_bind_param($stmt, "i", $param_id);
+
+    // Set parameters
+    $param_id = $id;
+
+    // Attempt to execute the prepared statement
+    if(mysqli_stmt_execute($stmt)){
+        
+        // Store result
+        mysqli_stmt_store_result($stmt);
+
+        
+
+            // Bind result variables
+            mysqli_stmt_bind_result($stmt, $firstname, $lastname, $username);
+
+            mysqli_stmt_fetch($stmt);
+
+        
+    } else{
+        echo "Something went wrong!";
+    }
+    
+
+    mysqli_close($conn);
+}
+
+
+
+
+
+
+
+ 
+
+
+?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Pending Applications</title>
-
-
+    <title>View Profile</title>
     <!--Font awesome kit-->
     <script src="https://kit.fontawesome.com/7887806c2e.js" crossorigin="anonymous"></script>
     <!-- Font Awesome JS -->
@@ -22,23 +86,15 @@
     <link rel="stylesheet" type="text/css" href="../css/stylesB.css?ts=<?=time()?>" />
     <!--This was added because the CSS was not updating as it was loading from browser cache-->
     <style type="text/css">
- 
-        table tr td:last-child a {
-            margin-right: 15px;
 
-        }
+
 
 
     </style>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('[data-toggle="tooltip"]').tooltip();
-        });
-
-    </script>
 </head>
 
 <body>
+
     <!--    Navbar begins-->
     <!-- Bootstrap NavBar -->
     <!-- Bootstrap NavBar -->
@@ -58,20 +114,17 @@
                 <li class="nav-item dropdown d-sm-block d-md-none">
                     <div class="dropdown-menu" aria-labelledby="smallerscreenmenu">
                         <!-- <li class=" nav-item d-sm-block d-md-none"> to hide from bigger screens -->
-               <li class=" nav-item d-sm-block d-md-none">
+                <li class=" nav-item d-sm-block d-md-none">
                     <a href="staff_view_profile.php" class="nav-link btn ">View Profile</a>
                 </li>
                 <li class=" nav-item d-sm-block d-md-none">
                     <a href="update_staff_own.php" class="nav-link btn ">Edit Profile</a>
                 </li>
                 <li class=" nav-item d-sm-block d-md-none">
-                    <a href="staff_leave_apply.php" class="nav-link btn">Apply for leave</a>
+                    <a href="view_leave_form.php" class="nav-link btn">View Pending Applications</a>
                 </li>
                 <li class=" nav-item d-sm-block d-md-none">
-                    <a href="view_application_result.php" class="nav-link btn">View application results</a>
-                </li>
-                <li class=" nav-item d-sm-block d-md-none">
-                    <a href="view_pending_application.php" class="nav-link btn">View pending applications</a>
+                    <a href="view_all_staff_application.php" class="nav-link btn">View All Application</a>
                 </li>
                 <li class="nav-item active">
                     <a href="sign_out.php" class="nav-link btn btn-danger">Sign Out</a>
@@ -149,105 +202,85 @@
         </div><!-- sidebar-container END -->
         <!--    navbar ends-->
 
-
         <!-- Main Section-->
 
 
-    
-    <!--Row end-->
-    <div class="col">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="clearfix">
-                        <h2 class="pull-left display-4 text-white mr-5">Pending leave applications</h2>
-                        <br>
-                        <form  method="POST">
-                            <input type="submit" name="ASC" class="btn btn-group btn-info inline mr-3" value="ASCENDING ORDER">
-                            <input type="submit" name="DESC" class="btn btn-group btn-danger inline" value="DESCENDING ORDER">
+        <div class="col">
+
+            <div class="container text-white rounded mt-3 pt-3 " id="editform">
+                <h1>My Profile</h1>
+                <hr>
+                <div class="row">
+                    <!-- left column -->
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <img src="//placehold.it/100" class="avatar img-circle" alt="avatar">
+                        </div>
+                    </div>
+
+                    <!-- edit form column -->
+                    <div class="col-md-8 personal-info">
+                        <div class="alert alert-info alert-dismissable">
+                            <a class="panel-close close" data-dismiss="alert">×</a>
+                            <i class="fa fa-coffee"></i>
+                            This is an <strong>.alert</strong>. Use this to show important messages to the user.
+                        </div>
+                        <h3>Personal info</h3>
+
+                        <form class="form-horizontal" role="form">
+                            <div class="form-group">
+                                <label class="col-lg-3 control-label">First name:</label>
+                                <div class="col-lg-8">
+                                    <input class="form-control" type="text" value="<?php echo $firstname; ?>" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-lg-3 control-label ">Last name:</label>
+                                <div class="col-lg-8">
+                                    <input class="form-control" type="text" value="<?php echo $lastname; ?>" readonly>
+                                </div>
+                            </div>
+                            
+                            
+                            
+                            
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">Username:</label>
+                                    <div class="col-md-8">
+                                        <input class="form-control" type="text" value="<?php echo $username ?>" readonly>
+                                    </div>
+                                </div>
+
                         </form>
                     </div>
-                    <?php
-
-                    
-
-                    // Check if the user is logged in, if not then redirect him to login page
-                    if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
-                            header("location: ../sign_in.php");
-                            exit;
-                        }
-
-                    
-
-                    if($_SESSION['userlevel'] === "manager"){
-                        header("location: ../sign_in.php");
-                        }
-                    
-
-                    // Include config file
-                    require_once "connect.php";
-
-
-                    $id = $_SESSION["id"];
-                    
-
-                    $order = "ASC";
-                    if(isset($_POST['DESC'])){
-                        $order = "DESC";
-                    }
-                    if(isset($_POST['ASC'])){
-                        $order = "ASC";
-                    }
-
-
-                    // Attempt select query execution
-                    $sql = "SELECT  form.reason, form.starting_date, form.id, form.ending_date FROM form, staff WHERE form.staff_id = staff.id AND form.status = 'NOT DONE' AND staff.id = $id ORDER BY form.starting_date $order ;";
-                    if($result = mysqli_query($conn, $sql)){
-                        if(mysqli_num_rows($result) > 0){
-                            echo "<table class='table table-bordered table-dark table-striped'>";
-                                echo "<thead thead-dark>";
-                                    echo "<tr>";
-                                       
-                                        
-                                        echo "<th>Leave Reason</th>";
-                                        echo "<th> Starting Date";
-                                        echo "<th> Ending Date";
-                                        echo "<th> Action";
-                                    echo "</tr>";
-                                echo "</thead>";
-                                echo "<tbody>";
-                                while($row = mysqli_fetch_array($result)){
-                                    echo "<tr>";
-                                    
-                                    echo "<td>" . $row['reason'] . "</td>";
-                                    echo "<td>" . $row['starting_date'] . "</td>";
-                                    echo "<td>" . $row['ending_date'] . "</td>";
-                                    echo "<td>";
-                                            echo "<a href='cancel_application.php?id=". $row['id'] ."' title='Cancel Application' data-toggle='tooltip'><i class='fas fa-times'></i></a>";
-                                        echo "</td>";
-                                        
-                                    echo "</tr>";
-                                }
-                                echo "</tbody>";                            
-                            echo "</table>";
-                            // Free result set
-                            
-                        } else{
-                            echo "<p class='lead text-white'><em>No records were found.</em></p>";
-                        }
-                    } else{
-                        echo "ERROR: Could not able to execute $sql. " . mysqli_error($conn);
-                    }
- 
-                    
-                    ?>
-
                 </div>
             </div>
+            <hr>
+            <!--            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="page-header">
+                            <h2>Update Record</h2>
+                        </div>
+                        <p>Please edit the input values and submit to update the record.</p>
+                        <form action="<?php echo htmlspecialchars(basename($_SERVER['REQUEST_URI'])); ?>" method="post">
+                            <div class="form-group <?php echo (!empty($username_err)) ? 'has-error' : ''; ?>">
+                                <label>Username</label>
+                                <input type="text" name="username" class="form-control" value="<?php echo $_SESSION['username']; ?>">
+                                <span class="help-block"><?php echo $username_err;?></span>
+                            </div>
+
+
+                            <input type="hidden" name="id" value=<?php echo $_SESSION["id"]; ?>>
+                            <input type="submit" class="btn btn-primary" value="Submit">
+                            <a href="staff.php" class="btn btn-default">Cancel</a>
+                        </form>
+                    </div>
+                </div>
+            </div> -->
         </div>
     </div>
-    </div>
-
+    <!--Row end-->
     <!--Bootstrap 4 Things-->
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -257,6 +290,8 @@
 
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
     <script src="../javascript/script.js"></script>
+    </div>
+    </div>
 </body>
 
 </html>
